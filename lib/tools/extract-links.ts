@@ -11,15 +11,26 @@ export async function extractLinks(
   url: string,
   filter?: string
 ): Promise<ExtractedLink[]> {
-  const response = await axios.get(url, {
-    timeout: 30000,
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    },
+  const apiKey = process.env.TAVILY_API_KEY || "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";
+  
+  if (!apiKey) {
+    throw new Error("TAVILY_API_KEY is not configured.");
+  }
+
+  // Usando a API de extração do Tavily para garantir que não seremos bloqueados
+  const response = await axios.post("https://api.tavily.com/extract", {
+    api_key: apiKey,
+    urls: [url],
+    include_raw_content: true,
   });
 
-  const $ = cheerio.load(response.data);
+  const results = response.data.results;
+  if (!results || results.length === 0) {
+    throw new Error("Failed to extract content from URL.");
+  }
+
+  const rawHtml = results[0].raw_content || "";
+  const $ = cheerio.load(rawHtml);
   const baseUrl = new URL(url);
   const links: ExtractedLink[] = [];
 

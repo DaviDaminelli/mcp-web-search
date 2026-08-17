@@ -22,39 +22,48 @@ export async function readWebpage(
   url: string,
   mode: ReadMode = "markdown"
 ): Promise<WebpageContent> {
-  const response = await axios.get(url, {
-    timeout: 30000,
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
-    maxContentLength: 5 * 1024 * 1024, // 5MB max
+  const apiKey = process.env.TAVILY_API_KEY || "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";
+  
+  if (!apiKey) {
+    throw new Error("TAVILY_API_KEY is not configured.");
+  }
+
+  // Usando a API de extração do Tavily para burlar bloqueios de scraping
+  const response = await axios.post("https://api.tavily.com/extract", {
+    api_key: apiKey,
+    urls: [url],
+    include_raw_content: true,
   });
+
+  const results = response.data.results;
+  if (!results || results.length === 0) {
+    throw new Error("Failed to extract content from URL.");
+  }
+
+  const rawHtml = results[0].raw_content || "";
+  const pageTitle = results[0].title || "";
 
   if (mode === "raw_html") {
     return {
       url,
-      title: "",
-      content: response.data,
+      title: pageTitle,
+      content: rawHtml,
       mode,
-      length: response.data.length,
+      length: rawHtml.length,
     };
   }
 
-  const $ = cheerio.load(response.data);
+  const $ = cheerio.load(rawHtml);
 
   // Extract title
-  const title = $("title").text().trim() || $("h1").first().text().trim() || "";
+  const title = pageTitle || $("title").text().trim() || $("h1").first().text().trim() || "";
 
   // Remove non-content elements
   $(
     "script, style, noscript, nav, footer, header, aside, [aria-hidden='true'], .cookie-banner, #cookie-banner, .ads, .advertisement"
   ).remove();
 
-  // Get main content area if possible, fallback to body
-  const mainEl =
-    $("main, article, [role='main'], .content, .post-content, #content").first();
+  const mainEl = $("main, article, [role='main'], .content, .post-content, #content").first();
   const contentEl = mainEl.length ? mainEl : $("body");
 
   if (mode === "text") {

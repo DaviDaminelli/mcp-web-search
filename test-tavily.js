@@ -1,0 +1,1 @@
+const axios = require("axios"); axios.post("https://api.tavily.com/extract", { api_key: "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", urls: ["https://example.com"], include_raw_content: true }).then(r => console.log(Object.keys(r.data.results[0]))).catch(console.error);
