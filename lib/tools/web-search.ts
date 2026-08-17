@@ -1,4 +1,4 @@
-﻿import { search, SafeSearchType } from "duck-duck-scrape";
+﻿import axios from "axios";
 
 export interface SearchResult {
   title: string;
@@ -11,18 +11,39 @@ export async function webSearch(
   query: string,
   numResults: number = 5
 ): Promise<SearchResult[]> {
-  const results = await search(query, {
-    safeSearch: SafeSearchType.MODERATE,
-  });
+  // Lê a chave das variáveis de ambiente. Se não existir, usa a fornecida.
+  const apiKey = process.env.TAVILY_API_KEY || "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";
+  
+  if (!apiKey) {
+    throw new Error("TAVILY_API_KEY is not configured.");
+  }
 
-  if (!results || !results.results) {
+  const response = await axios.post(
+    "https://api.tavily.com/search",
+    {
+      api_key: apiKey,
+      query: query,
+      search_depth: "basic",
+      include_answer: false,
+      include_images: false,
+      include_raw_content: false,
+      max_results: numResults,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.data || !response.data.results) {
     return [];
   }
 
-  return results.results.slice(0, numResults).map((r) => ({
+  return response.data.results.map((r: any) => ({
     title: r.title,
     url: r.url,
-    snippet: r.description || "",
+    snippet: r.content,
     source: new URL(r.url).hostname,
   }));
 }
