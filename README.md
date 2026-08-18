@@ -1,6 +1,6 @@
 ﻿# mcp-web-search
 
-Servidor MCP (Model Context Protocol) para consultas na internet, publicado na **Vercel** como uma API HTTP stateless. Permite que agentes de IA como o **Antigravity** pesquisem na web, leiam páginas, consumam APIs REST e extraiam links — sem nenhuma API key necessária.
+Servidor MCP (Model Context Protocol) para consultas na internet, publicado na **Vercel** como uma API HTTP stateless. Permite que agentes de IA como o **Antigravity** pesquisem na web, leiam páginas, consumam APIs REST e extraiam links — sem problemas de bloqueios anti-bot.
 
 ---
 
@@ -8,10 +8,10 @@ Servidor MCP (Model Context Protocol) para consultas na internet, publicado na *
 
 | Ferramenta | Descrição |
 |---|---|
-| `web_search` | Busca na internet via DuckDuckGo e retorna título, URL e snippet de cada resultado |
-| `read_webpage` | Baixa uma página e retorna o conteúdo em Markdown limpo, texto puro ou HTML bruto |
-| `fetch_json` | Faz GET em qualquer URL e retorna o JSON da resposta (ideal para APIs REST públicas) |
-| `extract_links` | Extrai todos os links de uma página, com suporte a filtro por domínio |
+| `web_search` | Busca na internet via **Tavily API** e retorna título, URL e snippet de cada resultado |
+| `read_webpage` | Usa o Tavily Extract para baixar páginas burlando bloqueios anti-bot e retorna o conteúdo em Markdown, texto puro ou HTML |
+| `fetch_json` | Faz GET em qualquer URL via Axios e retorna o JSON da resposta (ideal para APIs REST públicas) |
+| `extract_links` | Usa o Tavily Extract para ler a página e extrai todos os links com suporte a filtro por domínio |
 
 ---
 
@@ -20,10 +20,21 @@ Servidor MCP (Model Context Protocol) para consultas na internet, publicado na *
 - **Next.js 16** (App Router) — framework do servidor
 - **mcp-handler** — adaptador HTTP para o protocolo MCP
 - **@modelcontextprotocol/server** — SDK MCP v2
-- **duck-duck-scrape** — busca no DuckDuckGo (sem API key)
-- **axios** + **cheerio** + **turndown** — fetch e parsing de páginas web
+- **Tavily API** — mecanismo oficial de busca e extração de páginas (imune a bloqueios anti-bot)
+- **axios** + **cheerio** + **turndown** — consumo de APIs REST e parsing de conteúdo HTML
 - **Zod v4** — validação de schemas das ferramentas
 - **Vercel Hobby** — hospedagem gratuita (timeout de 60s por request)
+
+---
+
+## Configurando a Tavily API
+
+Como a Vercel e outros datacenters são frequentemente bloqueados por firewalls ao tentar raspar o conteúdo da web (scraping), este projeto utiliza o **Tavily**, que é uma API focada em IA que consegue ler páginas e buscar na internet de forma 100% confiável.
+
+Para funcionar perfeitamente:
+1. Crie uma conta gratuita em [tavily.com](https://tavily.com) (dá direito a 1.000 requisições/mês gratuitas).
+2. Vá no painel da sua hospedagem (ex: **Vercel**) e adicione a seguinte Variável de Ambiente:
+   - `TAVILY_API_KEY`: `sua_chave_aqui`
 
 ---
 
@@ -62,7 +73,7 @@ npx @modelcontextprotocol/inspector http://localhost:3000/api/mcp
 npx vercel
 ```
 
-Após o deploy, você receberá uma URL no formato `https://mcp-web-search-xxx.vercel.app`.
+Após o deploy, você receberá uma URL no formato `https://mcp-web-search-xxx.vercel.app`. Não se esqueça de configurar o `TAVILY_API_KEY`!
 
 ---
 
@@ -121,14 +132,14 @@ Use o pacote `mcp-remote` como proxy:
 
 ### `web_search`
 
-Busca na internet usando o DuckDuckGo.
+Busca na internet usando a API do Tavily.
 
 **Parâmetros:**
 
 | Nome | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `query` | `string` | ✅ | Termos de busca |
-| `num_results` | `number` | ❌ | Quantidade de resultados (1–10, padrão: 5) |
+| `num_results` | `number` | ❌ | Quantidade de resultados (padrão: 5) |
 
 **Exemplo de retorno:**
 ```json
@@ -146,7 +157,7 @@ Busca na internet usando o DuckDuckGo.
 
 ### `read_webpage`
 
-Lê e extrai o conteúdo de uma URL.
+Lê e extrai o conteúdo de uma URL burlando paywalls e anti-bots usando o Tavily Extract.
 
 **Parâmetros:**
 
@@ -161,7 +172,7 @@ Lê e extrai o conteúdo de uma URL.
 
 ### `fetch_json`
 
-Faz uma requisição GET e retorna o JSON.
+Faz uma requisição GET via Axios e retorna o JSON bruto.
 
 **Parâmetros:**
 
@@ -174,7 +185,7 @@ Faz uma requisição GET e retorna o JSON.
 
 ### `extract_links`
 
-Extrai todos os links de uma página web.
+Usa o Tavily Extract para ler o HTML real da página (inclusive sites dinâmicos) e extrai todos os links.
 
 **Parâmetros:**
 
@@ -207,10 +218,10 @@ mcp-web-search/
 ├── lib/
 │   ├── mcp-server.ts           ← Registro de todas as ferramentas
 │   └── tools/
-│       ├── web-search.ts       ← Busca DuckDuckGo
-│       ├── read-webpage.ts     ← Leitura e parsing de páginas
-│       ├── fetch-json.ts       ← Fetch de APIs REST
-│       └── extract-links.ts   ← Extração de links
+│       ├── web-search.ts       ← Busca via Tavily API
+│       ├── read-webpage.ts     ← Leitura e parsing de páginas (Tavily Extract)
+│       ├── fetch-json.ts       ← Fetch de APIs REST genéricas
+│       └── extract-links.ts    ← Extração de links via Tavily Extract HTML
 ├── next.config.ts
 └── package.json
 ```
