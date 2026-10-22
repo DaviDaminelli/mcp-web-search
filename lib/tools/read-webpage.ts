@@ -1,4 +1,5 @@
 ﻿import { tavilyRequest } from "../tavily";
+import { replaceImagesWithAlt } from "../markdown";
 
 // A Tavily entrega o conteúdo já em Markdown ou em texto puro — não há HTML no
 // caminho. Os modos espelham o parâmetro `format` da API, sem conversão local.
@@ -45,11 +46,12 @@ const INLINE_SEPARATORS = /\|(?:\s*:?-{2,}:?\s*\|){2,}/g;
  * Enxuga o Markdown para gastar menos tokens sem perder conteúdo.
  *
  * Sites montados com tabelas de layout (Hacker News é o caso extremo) rendem
- * dezenas de linhas de `|  |  |  |` e separadores soltos, que só consomem
- * contexto. Remove esse ruído, normaliza espaços e colapsa linhas em branco.
+ * dezenas de linhas de `|  |  |  |` e separadores soltos. Sites corporativos
+ * rendem URLs de CDN gigantes em cada imagem. Nada disso diz algo à IA que vai
+ * ler a página: o ruído sai, o alt das imagens fica, o conteúdo permanece.
  */
 export function tidyMarkdown(markdown: string): string {
-  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+  const lines = replaceImagesWithAlt(markdown).replace(/\r\n?/g, "\n").split("\n");
   const kept: string[] = [];
 
   for (const line of lines) {

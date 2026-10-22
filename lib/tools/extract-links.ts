@@ -1,4 +1,5 @@
 ﻿import { tavilyRequest } from "../tavily";
+import { replaceImagesWithAlt } from "../markdown";
 
 export interface ExtractedLink {
   text: string;
@@ -11,10 +12,6 @@ export interface ExtractedLink {
 //   [texto](url)   ·  <url>  ·  url solta no meio do texto
 const INLINE_LINK = /(!?)\[([^\]\n]*)\]\(\s*((?:[^()\s]|\([^()]*\))+?)(?:\s+"[^"]*")?\s*\)/g;
 
-// Imagens. São trocadas pelo próprio alt antes da busca por links: assim um
-// link que embrulha imagem — [ ![logo](a.svg) ](/) , comum em logo e badge —
-// deixa de esconder o destino atrás do `]` da imagem.
-const IMAGE = /!\[([^\]\n]*)\]\(\s*(?:[^()\s]|\([^()]*\))+?(?:\s+"[^"]*")?\s*\)/g;
 const AUTOLINK = /<([^<>\s]+)>/g;
 const BARE_URL = /https?:\/\/[^\s<>()[\]"'`]+/g;
 
@@ -35,7 +32,10 @@ export function parseMarkdownLinks(
   base: string,
   filter?: string
 ): ExtractedLink[] {
-  const content = markdown.replace(IMAGE, (_match, alt) => ` ${alt} `);
+  // As imagens viram o próprio alt antes da busca: assim um link que embrulha
+  // imagem — [ ![logo](a.svg) ](/) , comum em logo e badge — deixa de esconder
+  // o destino atrás do `]` da imagem.
+  const content = replaceImagesWithAlt(markdown);
   const baseUrl = new URL(base);
   const links: ExtractedLink[] = [];
   const seen = new Set<string>();

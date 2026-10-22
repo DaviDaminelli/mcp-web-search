@@ -78,6 +78,34 @@ console.log("\n5. Entradas degeneradas");
   check("CRLF normalizado", !tidyMarkdown("a\r\nb").includes("\r"), JSON.stringify(tidyMarkdown("a\r\nb")));
 }
 
+console.log("\n5b. Imagens viram alt (URL de CDN fora do contexto)");
+{
+  // Forma real do catálogo da MANN-FILTER, onde cada imagem carrega um caminho
+  // de CDN com mais de 100 caracteres.
+  const raw = [
+    '![MANN-FILTER logo](/en/_jcr_content/mainBrandLogo.coreimg.svg/1762774610821/logo.svg "MANN-FILTER logo")',
+    "## Dealer Finder",
+    '![The MANN-FILTER Online Catalog for different devices](/en/applications/_jcr_content/teasers/item1.coreimg.jpeg/1784879702296/mann-filter-online-catalog-mockup-desktop-mobile.jpeg "MANN-FILTER Online Catalogs")',
+    "Texto do produto C 23 21.",
+    "![](/decorativa-sem-alt.png)",
+    "[![Baixar catálogo](/icone.svg)](/downloads/catalogo.pdf)",
+  ].join("\n\n");
+
+  const tidy = tidyMarkdown(raw);
+
+  check("nenhuma URL de imagem sobrou", !/\.(svg|jpeg|jpg|png)/.test(tidy), tidy);
+  check("alt preservado", tidy.includes("MANN-FILTER logo"), tidy);
+  check("título preservado", tidy.includes("## Dealer Finder"), tidy);
+  check("texto preservado", tidy.includes("Texto do produto C 23 21."), tidy);
+  check("imagem sem alt sumiu por completo", !tidy.includes("decorativa"), tidy);
+  check(
+    "link que embrulha imagem mantém o destino",
+    tidy.includes("](/downloads/catalogo.pdf)") && tidy.includes("Baixar catálogo"),
+    tidy
+  );
+  console.log(`       ${raw.length} -> ${tidy.length} chars (-${Math.round((1 - tidy.length / raw.length) * 100)}%)`);
+}
+
 console.log("\n6. Teto de caracteres");
 {
   const curto = truncateContent("conteúdo curto", 1000);

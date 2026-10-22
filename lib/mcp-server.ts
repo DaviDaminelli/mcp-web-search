@@ -46,7 +46,7 @@ export function registerTools(server: McpServer) {
     {
       title: "Read Webpage",
       description:
-        "Fetch the content of a webpage as Markdown, bypassing anti-bot blocks. Ads, navigation and layout noise are stripped. HTML is not available: use markdown (default, keeps headings, lists, tables and links) or text (prose only).",
+        "Fetch the content of a webpage as Markdown, bypassing anti-bot blocks. Ads, navigation and layout noise are stripped, and images are reduced to their alt text. HTML is not available: use markdown (default, keeps headings, lists, tables and links) or text (prose only).",
       inputSchema: z.object({
         url: z.string().url().describe("The URL to read"),
         mode: z

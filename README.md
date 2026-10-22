@@ -21,6 +21,8 @@ As ferramentas devolvem **Markdown** porque é o formato mais eficiente para o m
 
 As saídas das tools também são Markdown compacto em vez de JSON indentado. Medido em páginas reais: `extract_links` caiu 54% (6.470 → 2.980 tokens em 163 links) e `web_search` 9%.
 
+As imagens viram o próprio texto alternativo: a URL do arquivo não diz nada a quem vai ler a página, e caminhos de CDN passam fácil de 100 caracteres cada. No catálogo da MANN-FILTER isso sozinho corta 18% do conteúdo.
+
 O maior ganho de contexto, porém, está no `query` do `read_webpage`: a Tavily reordena a página e devolve só os trechos pertinentes. Na Wikipédia pt do Brasil, a página inteira dá ~142.800 tokens; com `query: "população e economia do Brasil"` são **509 tokens** — e com `chunks_per_source: 1`, 153. Sem `query`, o conteúdo é cortado em `max_chars` (padrão 50.000 ≈ 12k tokens) e o corte é avisado no próprio texto, para o modelo saber que a página continua.
 
 ---
