@@ -61,6 +61,7 @@ Detalhes do comportamento:
 
 ```bash
 pnpm test:rotation   # testa a rotação com respostas simuladas (não gasta crédito)
+pnpm test:links      # testa o parser de links do extract_links (não gasta crédito)
 pnpm check:keys      # diz quais chaves do .env.local ainda têm saldo (1 crédito por chave)
 pnpm check:tools     # roda as três ferramentas contra a API real (~3 créditos)
 ```
