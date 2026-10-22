@@ -31,7 +31,7 @@ O maior ganho de contexto, porém, está no `query` do `read_webpage`: a Tavily 
 - **mcp-handler** — adaptador HTTP para o protocolo MCP
 - **@modelcontextprotocol/server** — SDK MCP v2
 - **Tavily API** — mecanismo oficial de busca e extração de páginas (imune a bloqueios anti-bot)
-- **axios** + **cheerio** + **turndown** — consumo de APIs REST e parsing de conteúdo HTML
+- **axios** — cliente HTTP para a Tavily e para o `fetch_json`
 - **Zod v4** — validação de schemas das ferramentas
 - **Vercel Hobby** — hospedagem gratuita (timeout de 60s por request)
 
