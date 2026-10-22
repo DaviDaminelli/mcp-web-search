@@ -1,5 +1,5 @@
-﻿import axios from "axios";
-import * as cheerio from "cheerio";
+﻿import * as cheerio from "cheerio";
+import { tavilyRequest } from "../tavily";
 
 export interface ExtractedLink {
   text: string;
@@ -11,20 +11,13 @@ export async function extractLinks(
   url: string,
   filter?: string
 ): Promise<ExtractedLink[]> {
-  const apiKey = process.env.TAVILY_API_KEY || "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";
-  
-  if (!apiKey) {
-    throw new Error("TAVILY_API_KEY is not configured.");
-  }
-
   // Usando a API de extração do Tavily para garantir que não seremos bloqueados
-  const response = await axios.post("https://api.tavily.com/extract", {
-    api_key: apiKey,
+  const data = await tavilyRequest("extract", {
     urls: [url],
     include_raw_content: true,
   });
 
-  const results = response.data.results;
+  const results = data.results;
   if (!results || results.length === 0) {
     throw new Error("Failed to extract content from URL.");
   }

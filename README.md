@@ -31,10 +31,39 @@ Servidor MCP (Model Context Protocol) para consultas na internet, publicado na *
 
 Como a Vercel e outros datacenters são frequentemente bloqueados por firewalls ao tentar raspar o conteúdo da web (scraping), este projeto utiliza o **Tavily**, que é uma API focada em IA que consegue ler páginas e buscar na internet de forma 100% confiável.
 
-Para funcionar perfeitamente:
+A chave é **obrigatória** — não há chave embutida no código. Sem variável de ambiente configurada, as ferramentas de busca falham com `Nenhuma chave da Tavily configurada`.
+
 1. Crie uma conta gratuita em [tavily.com](https://tavily.com) (dá direito a 1.000 requisições/mês gratuitas).
-2. Vá no painel da sua hospedagem (ex: **Vercel**) e adicione a seguinte Variável de Ambiente:
+2. Vá no painel da sua hospedagem (ex: **Vercel**) e adicione a Variável de Ambiente:
    - `TAVILY_API_KEY`: `sua_chave_aqui`
+3. Para rodar local, crie um `.env.local` na raiz com a mesma variável. O arquivo é ignorado pelo git.
+
+### Múltiplas chaves com troca automática
+
+Para não ficar sem busca quando uma conta gratuita atinge o limite, configure várias chaves separadas por vírgula:
+
+- `TAVILY_API_KEYS`: `tvly-dev-chave1,tvly-dev-chave2,tvly-dev-chave3`
+
+O servidor usa a primeira chave e, ao receber um erro de limite (`429` por minuto, `432`/`433` por cota do plano) ou de chave inválida (`401`/`403`), **repete a mesma requisição, com os mesmos parâmetros, na próxima chave** — tudo dentro da mesma chamada MCP. O cliente (a IA) recebe o resultado normalmente e não precisa refazer a busca.
+
+Detalhes do comportamento:
+
+- A chave que funcionou vira a padrão das chamadas seguintes, então não há troca desnecessária.
+- A chave que estourou fica em espera antes de voltar ao pool: o valor do header `Retry-After` (ou 1 minuto) para `429`, 6 horas para cota do plano, 24 horas para chave inválida.
+- Se a única chave disponível levar um `429` curto, o servidor **espera até 3 segundos e repete** em vez de devolver erro. Esperas maiores falham na hora, para não travar o cliente.
+- Se todas as chaves estiverem em espera, ele ainda tenta a que libera primeiro — o tempo de espera é uma estimativa local, não um dado da Tavily.
+- Erros que não são de limite (`400` de parâmetro inválido, `500`) sobem direto, sem queimar as outras chaves.
+- Esgotado o pool, o erro lista o motivo de cada chave (ex: `chave #1 (432 This request exceeds your plan's set usage limit...)`).
+
+`TAVILY_API_KEYS` e `TAVILY_API_KEY` podem ser usadas juntas — as chaves das duas são somadas no pool. A lógica fica em [lib/tavily.ts](lib/tavily.ts).
+
+### Verificando
+
+```bash
+pnpm test:rotation   # testa a rotação com respostas simuladas (não gasta crédito)
+pnpm check:keys      # diz quais chaves do .env.local ainda têm saldo (1 crédito por chave)
+pnpm check:tools     # roda as três ferramentas contra a API real (~3 créditos)
+```
 
 ---
 
@@ -217,6 +246,7 @@ mcp-web-search/
 │           └── route.ts        ← Endpoint MCP (GET + POST)
 ├── lib/
 │   ├── mcp-server.ts           ← Registro de todas as ferramentas
+│   ├── tavily.ts               ← Cliente Tavily com pool de chaves e troca no limite
 │   └── tools/
 │       ├── web-search.ts       ← Busca via Tavily API
 │       ├── read-webpage.ts     ← Leitura e parsing de páginas (Tavily Extract)

@@ -1,6 +1,6 @@
-﻿import axios from "axios";
-import * as cheerio from "cheerio";
+﻿import * as cheerio from "cheerio";
 import TurndownService from "turndown";
+import { tavilyRequest } from "../tavily";
 
 export type ReadMode = "markdown" | "text" | "raw_html";
 
@@ -22,20 +22,13 @@ export async function readWebpage(
   url: string,
   mode: ReadMode = "markdown"
 ): Promise<WebpageContent> {
-  const apiKey = process.env.TAVILY_API_KEY || "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";
-  
-  if (!apiKey) {
-    throw new Error("TAVILY_API_KEY is not configured.");
-  }
-
   // Usando a API de extração do Tavily para burlar bloqueios de scraping
-  const response = await axios.post("https://api.tavily.com/extract", {
-    api_key: apiKey,
+  const data = await tavilyRequest("extract", {
     urls: [url],
     include_raw_content: true,
   });
 
-  const results = response.data.results;
+  const results = data.results;
   if (!results || results.length === 0) {
     throw new Error("Failed to extract content from URL.");
   }

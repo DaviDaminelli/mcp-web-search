@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+﻿import { tavilyRequest } from "../tavily";
 
 export interface SearchResult {
   title: string;
@@ -11,36 +11,21 @@ export async function webSearch(
   query: string,
   numResults: number = 5
 ): Promise<SearchResult[]> {
-  // Lê a chave das variáveis de ambiente. Se não existir, usa a fornecida.
-  const apiKey = process.env.TAVILY_API_KEY || "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";
-  
-  if (!apiKey) {
-    throw new Error("TAVILY_API_KEY is not configured.");
-  }
+  // A troca de chave em caso de limite é feita dentro de tavilyRequest.
+  const data = await tavilyRequest("search", {
+    query: query,
+    search_depth: "basic",
+    include_answer: false,
+    include_images: false,
+    include_raw_content: false,
+    max_results: numResults,
+  });
 
-  const response = await axios.post(
-    "https://api.tavily.com/search",
-    {
-      api_key: apiKey,
-      query: query,
-      search_depth: "basic",
-      include_answer: false,
-      include_images: false,
-      include_raw_content: false,
-      max_results: numResults,
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
-
-  if (!response.data || !response.data.results) {
+  if (!data || !data.results) {
     return [];
   }
 
-  return response.data.results.map((r: any) => ({
+  return data.results.map((r) => ({
     title: r.title,
     url: r.url,
     snippet: r.content,

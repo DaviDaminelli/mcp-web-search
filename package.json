@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:rotation": "node scripts/tavily-rotation.test.mts",
+    "check:keys": "node --env-file=.env.local --import ./scripts/ts-resolver.mjs scripts/tavily-live-check.mts",
+    "check:tools": "node --env-file=.env.local --import ./scripts/ts-resolver.mjs scripts/tavily-tools-e2e.mts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
