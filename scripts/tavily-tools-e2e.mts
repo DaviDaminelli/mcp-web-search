@@ -30,7 +30,8 @@ console.log("\nread_webpage('https://example.com', markdown):");
 try {
   const page = await readWebpage("https://example.com", "markdown");
   show("título", page.title || "(vazio)");
-  show("tamanho", page.length);
+  show("tamanho", `${page.length} chars (~${Math.round(page.length / 4)} tokens)`);
+  show("truncado", page.truncated);
   show("trecho", JSON.stringify(page.content.slice(0, 80)));
 } catch (error: any) {
   show("FALHOU", error.message);

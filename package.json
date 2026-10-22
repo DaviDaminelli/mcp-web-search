@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test:rotation": "node scripts/tavily-rotation.test.mts",
     "test:links": "node --import ./scripts/ts-resolver.mjs scripts/extract-links.test.mts",
+    "test:markdown": "node --import ./scripts/ts-resolver.mjs scripts/read-webpage.test.mts",
     "check:keys": "node --env-file=.env.local --import ./scripts/ts-resolver.mjs scripts/tavily-live-check.mts",
     "check:tools": "node --env-file=.env.local --import ./scripts/ts-resolver.mjs scripts/tavily-tools-e2e.mts"
   },

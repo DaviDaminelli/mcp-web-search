@@ -12,7 +12,7 @@ export function registerTools(server: McpServer) {
     {
       title: "Web Search",
       description:
-        "Search the web using DuckDuckGo. Returns a list of results with title, URL, and snippet.",
+        "Search the web using the Tavily API. Returns a numbered Markdown list of results, each with title, URL, and snippet.",
       inputSchema: z.object({
         query: z.string().describe("The search query"),
         num_results: z
@@ -27,14 +27,16 @@ export function registerTools(server: McpServer) {
     },
     async ({ query, num_results }) => {
       const results = await webSearch(query, num_results ?? 5);
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(results, null, 2),
-          },
-        ],
-      };
+
+      // Markdown compacto em vez de JSON indentado: mesma informação, bem
+      // menos tokens no contexto de quem chama.
+      const text = results.length
+        ? results
+            .map((r, i) => `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.snippet}`)
+            .join("\n\n")
+        : `No results for "${query}".`;
+
+      return { content: [{ type: "text" as const, text }] };
     }
   );
 
@@ -44,24 +46,49 @@ export function registerTools(server: McpServer) {
     {
       title: "Read Webpage",
       description:
-        "Fetch and extract the content of a webpage. Returns clean text or markdown, stripping ads and navigation.",
+        "Fetch the content of a webpage as Markdown, bypassing anti-bot blocks. Ads, navigation and layout noise are stripped. HTML is not available: use markdown (default, keeps headings, lists, tables and links) or text (prose only).",
       inputSchema: z.object({
         url: z.string().url().describe("The URL to read"),
         mode: z
-          .enum(["markdown", "text", "raw_html"])
+          .enum(["markdown", "text"])
           .default("markdown")
           .optional()
-          .describe("Output format: markdown (default), text, or raw_html"),
+          .describe("Output format: markdown (default) or text"),
+        query: z
+          .string()
+          .optional()
+          .describe(
+            "What you are looking for on the page. Returns only the relevant excerpts instead of the whole page — strongly recommended for long pages, since a full article can run past 100k tokens"
+          ),
+        chunks_per_source: z
+          .number()
+          .int()
+          .min(1)
+          .max(5)
+          .optional()
+          .describe("How many excerpts to return when query is set (1-5, default 3)"),
+        max_chars: z
+          .number()
+          .int()
+          .min(1000)
+          .max(500000)
+          .optional()
+          .describe(
+            "Cap on returned characters (default 50000, roughly 12k tokens). Content above the cap is cut and flagged in the output"
+          ),
       }),
     },
-    async ({ url, mode }) => {
-      const result = await readWebpage(url, mode ?? "markdown");
+    async ({ url, mode, query, chunks_per_source, max_chars }) => {
+      const result = await readWebpage(url, mode ?? "markdown", {
+        query,
+        chunksPerSource: chunks_per_source,
+        maxChars: max_chars,
+      });
+      const heading = result.title ? `# ${result.title}\n${result.url}` : result.url;
+
       return {
         content: [
-          {
-            type: "text" as const,
-            text: `# ${result.title}\nURL: ${result.url}\nMode: ${result.mode}\nLength: ${result.length} chars\n\n---\n\n${result.content}`,
-          },
+          { type: "text" as const, text: `${heading}\n\n${result.content}` },
         ],
       };
     }
@@ -101,7 +128,7 @@ export function registerTools(server: McpServer) {
     {
       title: "Extract Links",
       description:
-        "Extract all hyperlinks from a webpage. Returns a deduplicated list with link text and absolute URLs.",
+        "Extract all hyperlinks from a webpage. Returns a deduplicated Markdown list of 'link text → absolute URL', with relative URLs already resolved.",
       inputSchema: z.object({
         url: z.string().url().describe("The URL to extract links from"),
         filter: z
@@ -114,14 +141,15 @@ export function registerTools(server: McpServer) {
     },
     async ({ url, filter }) => {
       const links = await extractLinks(url, filter);
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(links, null, 2),
-          },
-        ],
-      };
+
+      // Uma linha por link. Em páginas com centenas de links isso economiza
+      // muito mais contexto que o JSON indentado — e o href relativo sai, já
+      // que a URL absoluta o torna redundante.
+      const text = links.length
+        ? `${links.length} links:\n\n${links.map((l) => `- ${l.text} → ${l.absolute_url}`).join("\n")}`
+        : `No links found${filter ? ` matching "${filter}"` : ""}.`;
+
+      return { content: [{ type: "text" as const, text }] };
     }
   );
 }

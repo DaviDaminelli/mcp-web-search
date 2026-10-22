@@ -9,9 +9,19 @@ Servidor MCP (Model Context Protocol) para consultas na internet, publicado na *
 | Ferramenta | Descrição |
 |---|---|
 | `web_search` | Busca na internet via **Tavily API** e retorna título, URL e snippet de cada resultado |
-| `read_webpage` | Usa o Tavily Extract para baixar páginas burlando bloqueios anti-bot e retorna o conteúdo em Markdown, texto puro ou HTML |
+| `read_webpage` | Usa o Tavily Extract para baixar páginas burlando bloqueios anti-bot e retorna o conteúdo em Markdown (ou texto puro), com `query` opcional para trazer só os trechos relevantes |
 | `fetch_json` | Faz GET em qualquer URL via Axios e retorna o JSON da resposta (ideal para APIs REST públicas) |
 | `extract_links` | Usa o Tavily Extract para ler a página e extrai todos os links com suporte a filtro por domínio |
+
+---
+
+## Markdown, não HTML
+
+As ferramentas devolvem **Markdown** porque é o formato mais eficiente para o modelo que consome o MCP: a mesma informação em uma fração dos tokens do HTML, com a hierarquia que importa (títulos, listas, tabelas, links) preservada e o layout descartado. Além disso, o `/extract` da Tavily aceita apenas `markdown` ou `text` — **HTML não existe no caminho**, por isso o antigo modo `raw_html` foi removido em vez de continuar prometendo algo que não entregava.
+
+As saídas das tools também são Markdown compacto em vez de JSON indentado. Medido em páginas reais: `extract_links` caiu 54% (6.470 → 2.980 tokens em 163 links) e `web_search` 9%.
+
+O maior ganho de contexto, porém, está no `query` do `read_webpage`: a Tavily reordena a página e devolve só os trechos pertinentes. Na Wikipédia pt do Brasil, a página inteira dá ~142.800 tokens; com `query: "população e economia do Brasil"` são **509 tokens** — e com `chunks_per_source: 1`, 153. Sem `query`, o conteúdo é cortado em `max_chars` (padrão 50.000 ≈ 12k tokens) e o corte é avisado no próprio texto, para o modelo saber que a página continua.
 
 ---
 
@@ -62,6 +72,7 @@ Detalhes do comportamento:
 ```bash
 pnpm test:rotation   # testa a rotação com respostas simuladas (não gasta crédito)
 pnpm test:links      # testa o parser de links do extract_links (não gasta crédito)
+pnpm test:markdown   # testa a limpeza de Markdown e o corte por max_chars (não gasta crédito)
 pnpm check:keys      # diz quais chaves do .env.local ainda têm saldo (1 crédito por chave)
 pnpm check:tools     # roda as três ferramentas contra a API real (~3 créditos)
 ```

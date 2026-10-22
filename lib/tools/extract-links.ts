@@ -92,13 +92,16 @@ export async function extractLinks(
   // Usando a API de extração do Tavily para garantir que não seremos bloqueados
   const data = await tavilyRequest("extract", {
     urls: [url],
-    include_raw_content: true,
+    format: "markdown",
   });
 
-  const results = data.results;
-  if (!results || results.length === 0) {
-    throw new Error("Failed to extract content from URL.");
+  const result = data.results?.[0];
+  if (!result) {
+    const failure = data.failed_results?.[0]?.error;
+    throw new Error(
+      failure ? `Failed to extract content from URL: ${failure}` : "Failed to extract content from URL."
+    );
   }
 
-  return parseMarkdownLinks(results[0].raw_content || "", url, filter);
+  return parseMarkdownLinks(result.raw_content || "", url, filter);
 }
